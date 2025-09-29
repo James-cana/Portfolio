@@ -1,17 +1,10 @@
-// Centralized navigation state management with smooth transitions
 function updateNavigationState(targetSectionId) {
     const navLinks = document.querySelectorAll('.nav-link');
     const navBrand = document.querySelector('.nav-brand');
-
-    // Update active nav link with smooth transition
     navLinks.forEach(link => {
         const isTargetLink = link.getAttribute('section') === targetSectionId;
-
         if (isTargetLink && !link.classList.contains('active')) {
-            // Remove active class from all links first
             navLinks.forEach(l => l.classList.remove('active'));
-
-            // Add active class to target link with a slight delay for smooth transition
             requestAnimationFrame(() => {
                 link.classList.add('active');
             });
@@ -19,8 +12,6 @@ function updateNavigationState(targetSectionId) {
             link.classList.remove('active');
         }
     });
-
-    // Update brand visibility (only on desktop)
     if (navBrand && window.innerWidth > 768) {
         if (targetSectionId !== 'home') {
             navBrand.classList.add('visible');
@@ -30,20 +21,14 @@ function updateNavigationState(targetSectionId) {
     }
 }
 
-// Standard navigation click handlers
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
-
         const href = this.getAttribute('href');
-
-        // Only proceed with smooth scrolling if href is a valid selector (not just "#")
         if (href && href !== '#' && href.startsWith('#')) {
             const target = document.querySelector(href);
             if (target) {
-                // Update navigation state immediately
                 updateNavigationState(target.id);
-
                 target.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
@@ -56,8 +41,6 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 const sections = document.querySelectorAll('.section');
 const navLinks = document.querySelectorAll('.nav-link');
 const navBrand = document.querySelector('.nav-brand');
-
-// Simple intersection observer for scroll animations
 const revealOptions = {
     root: null,
     threshold: 0.1,
@@ -66,24 +49,40 @@ const revealOptions = {
 
 const revealSection = (entries, observer) => {
     entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const section = entry.target;
-            const sectionContent = Array.from(section.children);
+        const section = entry.target;
+        const sectionContent = Array.from(section.children);
 
+        if (entry.isIntersecting) {
             sectionContent.forEach((element, index) => {
                 const delay = index * 100;
                 element.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
                 element.style.transitionDelay = `${delay}ms`;
                 element.style.opacity = '1';
-                element.style.transform = 'translateY(0)';
+                
+                if (scrollDirection === 'down') {
+                    element.style.transform = 'translateY(0)';
+                } else {
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        } else {
+            sectionContent.forEach((element, index) => {
+                const delay = index * 50;
+                element.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                element.style.transitionDelay = `${delay}ms`;
+                element.style.opacity = '0';
+                
+                if (scrollDirection === 'down') {
+                    element.style.transform = 'translateY(-30px)';
+                } else {
+                    element.style.transform = 'translateY(30px)';
+                }
             });
         }
     });
 };
 
 const sectionObserver = new IntersectionObserver(revealSection, revealOptions);
-
-// Initialize sections for animation
 sections.forEach(section => {
     if (!section.classList.contains('hero')) {
         Array.from(section.children).forEach(child => {
@@ -94,26 +93,19 @@ sections.forEach(section => {
     sectionObserver.observe(section);
 });
 
-// Enhanced navigation state update using Intersection Observer
-let activeSectionId = 'home'; // Default to home section
+let activeSectionId = 'home';
 let navObserver = null;
-
-// Mobile detection function
 function isMobile() {
     return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// Create intersection observer for navigation with mobile-optimized settings
 function createNavObserver() {
-    // Destroy existing observer if it exists
     if (navObserver) {
         navObserver.disconnect();
     }
-
-    // Create intersection observer for navigation with optimized thresholds
     const navObserverOptions = {
         root: null,
-        rootMargin: isMobile() ? '-10% 0px -10% 0px' : '-25% 0px -25% 0px', // More sensitive on mobile
+        rootMargin: isMobile() ? '-10% 0px -10% 0px' : '-25% 0px -25% 0px',
         threshold: isMobile() ? [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] : [0, 0.25, 0.5, 0.75, 1.0]
     };
 
@@ -131,7 +123,6 @@ function createNavObserver() {
             }
         });
 
-        // Update navigation with mobile-specific thresholds
         const minVisibility = isMobile() ? 0.15 : 0.25;
         if (mostVisibleSection && maxVisibility > minVisibility) {
             if (activeSectionId !== mostVisibleSection) {
@@ -140,44 +131,33 @@ function createNavObserver() {
             }
         }
     }, navObserverOptions);
-
-    // Observe all sections for navigation
     sections.forEach(section => {
         navObserver.observe(section);
     });
 }
 
-// Initialize the observer
 createNavObserver();
-
-// Enhanced fallback function for scroll-based navigation with mobile optimization
 function updateActiveNav() {
     const scrollPosition = window.pageYOffset + window.innerHeight / 2;
     let fallbackSectionId = null;
-
-    // More aggressive detection for mobile devices
     const viewportThreshold = isMobile() ? window.innerHeight * 0.3 : window.innerHeight * 0.5;
 
     sections.forEach(section => {
         const sectionTop = section.offsetTop;
         const sectionBottom = sectionTop + section.offsetHeight;
 
-        // For mobile, use a more sensitive detection
         if (isMobile()) {
-            // Check if any part of the section is in the top 30% of viewport
             if (sectionTop <= window.pageYOffset + viewportThreshold &&
                 sectionBottom >= window.pageYOffset) {
                 fallbackSectionId = section.id;
             }
         } else {
-            // Check if the middle of the viewport is within this section
             if (scrollPosition >= sectionTop && scrollPosition <= sectionBottom) {
                 fallbackSectionId = section.id;
             }
         }
     });
 
-    // If no section is found, find the closest one
     if (!fallbackSectionId) {
         let closestDistance = Infinity;
         sections.forEach(section => {
@@ -187,7 +167,6 @@ function updateActiveNav() {
                 Math.abs(scrollPosition - sectionTop),
                 Math.abs(scrollPosition - sectionBottom)
             );
-
             if (distance < closestDistance) {
                 closestDistance = distance;
                 fallbackSectionId = section.id;
@@ -243,49 +222,38 @@ const updateParallax = () => {
     });
 };
 
-// Standard scroll event listener for navigation state and effects
 let lastScrollY = window.pageYOffset;
-
+let scrollDirection = 'down';
 window.addEventListener('scroll', () => {
-    // Use fallback navigation update less frequently (throttled)
+    const currentScrollY = window.pageYOffset;
+    scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
+    
     if (!ticking) {
         requestAnimationFrame(() => {
-            // Use fallback more frequently on mobile for better responsiveness
             if (isMobile() || window.pageYOffset < 100) {
                 updateActiveNav();
             }
-
             updateParallax();
             ticking = false;
         });
         ticking = true;
     }
-
-    // Navigation scroll effect
     const nav = document.querySelector('nav');
     if (window.pageYOffset > 50) {
         nav.classList.add('scrolled');
     } else {
         nav.classList.remove('scrolled');
     }
-
-    lastScrollY = window.pageYOffset;
+    lastScrollY = currentScrollY;
 });
 
-// Initialize navigation state on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Set initial active state
     updateActiveNav();
-
-    // Force navigation update for mobile devices
     if (isMobile()) {
-        // Multiple attempts to ensure proper detection on mobile
         setTimeout(() => updateActiveNav(), 50);
         setTimeout(() => updateActiveNav(), 200);
         setTimeout(() => updateActiveNav(), 500);
     }
-
-    // Ensure proper initial state after a short delay
     setTimeout(() => {
         if (window.pageYOffset < 50) {
             updateNavigationState('home');
@@ -293,19 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// Handle window resize and mobile optimization
 window.addEventListener('resize', () => {
     const navBrand = document.querySelector('.nav-brand');
     if (navBrand && window.innerWidth <= 768) {
-        // Force hide on mobile
         navBrand.classList.remove('visible');
     }
-
-    // Recreate observer with new mobile/desktop settings
     createNavObserver();
-
-    // Recalculate navigation state after resize
-    // Use a small delay to ensure layout is complete
     setTimeout(() => {
         updateActiveNav();
     }, 100);
@@ -318,23 +279,30 @@ const cardOptions = {
 
 const cardObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry, index) => {
-        if (entry.isIntersecting) {
-            const card = entry.target;
-            const delay = index * 100;
+        const card = entry.target;
+        const delay = index * 100;
 
+        if (entry.isIntersecting) {
             card.style.transition = `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`;
             card.style.transform = 'translateY(0) scale(1)';
             card.style.opacity = '1';
+        } else {
+            card.style.transition = `all 0.4s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`;
+            card.style.opacity = '0';
+            
+            if (scrollDirection === 'down') {
+                card.style.transform = 'translateY(-30px) scale(0.95)';
+            } else {
+                card.style.transform = 'translateY(30px) scale(0.95)';
+            }
         }
     });
 }, cardOptions);
 
 document.querySelectorAll('.project-card, .skill-card').forEach((card) => {
-    // Skip carousel project cards to avoid fadeup animation
     if (card.closest('.carousel-section')) {
         return;
     }
-    
     card.style.opacity = '0';
     card.style.transform = 'translateY(30px) scale(0.95)';
     cardObserver.observe(card);
@@ -398,9 +366,6 @@ const yearSpan = document.getElementById('current-year');
 if (yearSpan) {
     yearSpan.textContent = currentYear;
 }
-
-
-// Carousel Implementation
 document.addEventListener('DOMContentLoaded', function () {
     const carouselSection = document.querySelector('.carousel-section');
     if (!carouselSection) return;
@@ -413,32 +378,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const indicatorsContainer = carousel.querySelector('.carousel-indicators');
     const carouselWrapper = carousel.querySelector('.carousel-wrapper');
 
-    // Dynamically generate indicators based on number of slides
     function generateIndicators() {
-        indicatorsContainer.innerHTML = ''; // Clear existing indicators
-
+        indicatorsContainer.innerHTML = '';
         slides.forEach((slide, index) => {
             const indicator = document.createElement('button');
             indicator.className = 'carousel-indicator';
             indicator.setAttribute('data-slide', index);
             indicator.setAttribute('aria-label', `Go to slide ${index + 1}`);
-
-            // Set first indicator as active
             if (index === 0) {
                 indicator.classList.add('active');
             }
-
             indicatorsContainer.appendChild(indicator);
         });
     }
-
-    // Generate indicators
     generateIndicators();
-
-    // Get the newly created indicators
     const indicators = carousel.querySelectorAll('.carousel-indicator');
 
-    // Disable native drag thumbnail preview on project images and links
     carousel.querySelectorAll('.project-image img, .project-image a, .carousel-slide img, .carousel-slide a').forEach((el) => {
         el.setAttribute('draggable', 'false');
         el.addEventListener('dragstart', (e) => e.preventDefault());
@@ -451,13 +406,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const slideWidth = carouselWrapper.offsetWidth;
         track.style.transform = `translateX(-${currentSlide * slideWidth}px)`;
 
-        // Update indicators (get fresh reference since they're dynamically generated)
         const currentIndicators = carousel.querySelectorAll('.carousel-indicator');
         currentIndicators.forEach((indicator, index) => {
             indicator.classList.toggle('active', index === currentSlide);
         });
-
-        // Update button states
         prevBtn.style.opacity = currentSlide === 0 ? '0.5' : '1';
         nextBtn.style.opacity = currentSlide === slideCount - 1 ? '0.5' : '1';
     }
@@ -479,19 +431,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Event listeners
     prevBtn.addEventListener('click', prevSlide);
     nextBtn.addEventListener('click', nextSlide);
-
-    // Add event listeners to indicators (they're dynamically generated)
     indicatorsContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('carousel-indicator')) {
             const slideIndex = parseInt(e.target.getAttribute('data-slide'));
             goToSlide(slideIndex);
         }
     });
-
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
         if (document.activeElement.closest('.carousel-section')) {
             if (e.key === 'ArrowLeft') {
@@ -506,19 +453,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-    // Initialize carousel
     updateCarousel();
-
-    // Handle window resize
     window.addEventListener('resize', updateCarousel);
 });
-
-// Gooey Cursor Implementation
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if device is mobile
     const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    // Skip cursor initialization on mobile devices
     if (isMobile) {
         return;
     }
@@ -539,15 +478,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const INACTIVITY_TIMEOUT = 1000;
 
     function onMouseMove(event) {
-        // Show cursor if hidden
         showCursor();
-
-        // Clear any existing timeout
         clearTimeout(cursorTimeout);
-
-        // Set a new timeout to hide the cursor after INACTIVITY_TIMEOUT
         cursorTimeout = setTimeout(hideCursor, INACTIVITY_TIMEOUT);
-
         mouseX = event.clientX;
         mouseY = event.clientY;
     }
@@ -569,9 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function initCursor() {
-        // Clear any existing circles
         cursor.innerHTML = '';
-
         for (let i = 0; i < TAIL_LENGTH; i++) {
             let div = document.createElement('div');
             div.classList.add('cursor-circle');
@@ -604,15 +535,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.addEventListener('mousemove', onMouseMove, false);
-
     initCursor();
     updateCursor();
-
-    // Initial hide of cursor after INACTIVITY_TIMEOUT
     cursorTimeout = setTimeout(hideCursor, INACTIVITY_TIMEOUT);
 });
-
-// Video Modal Implementation
 document.addEventListener('DOMContentLoaded', function () {
     const videoModal = document.getElementById('videoModal');
     const projectVideo = document.getElementById('projectVideo');
@@ -622,48 +548,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const progressTrack = document.querySelector('.progress-track');
     const videoPlayPauseIndicator = document.getElementById('videoPlayPauseIndicator');
 
-    // Function to show play/pause indicator
     function showPlayPauseIndicator(isPaused) {
         if (!videoPlayPauseIndicator) return;
-
-        // Remove existing classes
         videoPlayPauseIndicator.classList.remove('show', 'hide', 'show-pause');
-
-        // Add appropriate classes
         if (isPaused) {
             videoPlayPauseIndicator.classList.add('show', 'show-pause');
-            // Don't auto-hide pause indicator - keep it visible
         } else {
             videoPlayPauseIndicator.classList.add('show');
-            // Auto-hide play indicator after 0.5 seconds
             setTimeout(() => {
                 hidePlayPauseIndicator();
             }, 500);
         }
     }
-
-    // Function to hide play/pause indicator
     function hidePlayPauseIndicator() {
         if (!videoPlayPauseIndicator) return;
-
         videoPlayPauseIndicator.classList.remove('show');
         videoPlayPauseIndicator.classList.add('hide');
-
-        // Remove hide class after transition
         setTimeout(() => {
             videoPlayPauseIndicator.classList.remove('hide', 'show-pause');
         }, 300);
     }
 
-    // Function to update progress bar with smooth animation
     function updateProgress() {
         if (projectVideo.duration) {
             const progress = (projectVideo.currentTime / projectVideo.duration) * 100;
             progressFill.style.width = progress + '%';
         }
     }
-
-    // Smooth progress bar animation using requestAnimationFrame
     let progressAnimationId;
     function animateProgress() {
         updateProgress();
@@ -672,49 +583,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Function to show video modal
     function showVideoModal(videoSrc) {
         projectVideo.src = videoSrc;
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-
-        // Small delay to ensure proper initialization
+        document.body.style.overflow = 'hidden';
         requestAnimationFrame(() => {
             videoModal.classList.add('show');
         });
-
-        // Start smooth progress tracking when video starts playing
         projectVideo.addEventListener('play', function () {
             animateProgress();
-            showPlayPauseIndicator(false); // Show play indicator
+            showPlayPauseIndicator(false);
         });
-
         projectVideo.addEventListener('pause', function () {
             if (progressAnimationId) {
                 cancelAnimationFrame(progressAnimationId);
             }
-            showPlayPauseIndicator(true); // Show pause indicator
+            showPlayPauseIndicator(true);
         });
     }
 
-    // Function to hide video modal
     function hideVideoModal() {
         videoModal.classList.remove('show');
-        document.body.style.overflow = 'auto'; // Restore scrolling
-        // Pause video when modal is closed
+        document.body.style.overflow = 'auto';
         projectVideo.pause();
         projectVideo.currentTime = 0;
         progressFill.style.width = '0%';
-
-        // Stop progress animation
         if (progressAnimationId) {
             cancelAnimationFrame(progressAnimationId);
         }
-
-        // Hide play/pause indicator
         hidePlayPauseIndicator();
     }
 
-    // Add click event listeners to video triggers
     videoTriggers.forEach(trigger => {
         trigger.addEventListener('click', function (e) {
             e.preventDefault();
@@ -724,26 +622,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-
-    // Close modal when close button is clicked
     if (videoCloseButton) {
         videoCloseButton.addEventListener('click', hideVideoModal);
     }
-
-    // Close modal when clicking outside the video
     videoModal.addEventListener('click', function (e) {
         if (e.target === videoModal) {
             hideVideoModal();
         }
     });
 
-    // Close modal with Escape key and play/pause with Spacebar
     document.addEventListener('keydown', function (e) {
         if (videoModal.classList.contains('show')) {
             if (e.key === 'Escape') {
                 hideVideoModal();
             } else if (e.key === ' ' || e.key === 'Spacebar') {
-                e.preventDefault(); // Prevent page scroll
+                e.preventDefault();
                 if (projectVideo.paused) {
                     projectVideo.play();
                 } else {
@@ -752,12 +645,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-
-    // Video click to play/pause
     projectVideo.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-
         if (projectVideo.paused) {
             projectVideo.play();
         } else {
@@ -765,19 +655,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Progress bar click to seek and drag functionality
     let isDragging = false;
     let dragStartX = 0;
     let dragStartTime = 0;
     let wasPlaying = false;
-
     if (progressTrack) {
-        // Click to seek (only if not dragging)
         progressTrack.addEventListener('click', function (e) {
             if (!isDragging) {
                 e.preventDefault();
                 e.stopPropagation();
-
                 if (projectVideo.duration) {
                     const rect = progressTrack.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
@@ -788,91 +674,64 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Mouse drag functionality
         progressTrack.addEventListener('mousedown', function (e) {
             e.preventDefault();
             e.stopPropagation();
-
             isDragging = true;
             dragStartX = e.clientX;
             wasPlaying = !projectVideo.paused;
-
-            // Add dragging class for visual feedback
             progressTrack.classList.add('dragging');
-
-            // Pause video while dragging
             projectVideo.pause();
-
-            // Immediately update position on mousedown and set as drag start time
             if (projectVideo.duration) {
                 const rect = progressTrack.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const percentage = Math.max(0, Math.min(1, clickX / rect.width));
                 const newTime = percentage * projectVideo.duration;
                 projectVideo.currentTime = newTime;
-                dragStartTime = newTime; // Set drag start time to clicked position
-
-                // Immediately update the progress bar visual
+                dragStartTime = newTime;
                 const progress = (newTime / projectVideo.duration) * 100;
                 progressFill.style.width = progress + '%';
             }
         });
 
-        // Mouse move during drag
         function handleMouseMove(e) {
             if (isDragging && projectVideo.duration) {
                 const rect = progressTrack.getBoundingClientRect();
                 const deltaX = e.clientX - dragStartX;
                 const deltaPercentage = deltaX / rect.width;
                 const newTime = Math.max(0, Math.min(projectVideo.duration, dragStartTime + (deltaPercentage * projectVideo.duration)));
-
                 projectVideo.currentTime = newTime;
-
-                // Immediately update the progress bar visual
                 const progress = (newTime / projectVideo.duration) * 100;
                 progressFill.style.width = progress + '%';
             }
         }
-
-        // Mouse up to end drag
         function handleMouseUp(e) {
             if (isDragging) {
                 isDragging = false;
                 progressTrack.classList.remove('dragging');
-
-                // Resume video if it was playing before drag
                 if (wasPlaying) {
                     projectVideo.play();
                 }
             }
         }
 
-        // Add event listeners
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
-
-        // Touch support for mobile
         progressTrack.addEventListener('touchstart', function (e) {
             e.preventDefault();
             e.stopPropagation();
-
             isDragging = true;
             dragStartX = e.touches[0].clientX;
             wasPlaying = !projectVideo.paused;
-
             progressTrack.classList.add('dragging');
             projectVideo.pause();
-
-            // Immediately update position on touchstart and set as drag start time
             if (projectVideo.duration) {
                 const rect = progressTrack.getBoundingClientRect();
                 const touchX = e.touches[0].clientX - rect.left;
                 const percentage = Math.max(0, Math.min(1, touchX / rect.width));
                 const newTime = percentage * projectVideo.duration;
                 projectVideo.currentTime = newTime;
-                dragStartTime = newTime; // Set drag start time to touched position
-
-                // Immediately update the progress bar visual
+                dragStartTime = newTime;
                 const progress = (newTime / projectVideo.duration) * 100;
                 progressFill.style.width = progress + '%';
             }
@@ -888,7 +747,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 projectVideo.currentTime = newTime;
 
-                // Immediately update the progress bar visual
                 const progress = (newTime / projectVideo.duration) * 100;
                 progressFill.style.width = progress + '%';
             }
@@ -908,12 +766,32 @@ document.addEventListener('DOMContentLoaded', function () {
         document.addEventListener('touchmove', handleTouchMove, { passive: false });
         document.addEventListener('touchend', handleTouchEnd);
     }
-
-    // Pause video when modal is hidden (for better performance)
     videoModal.addEventListener('transitionend', function (e) {
         if (e.target === videoModal && !videoModal.classList.contains('show')) {
             projectVideo.pause();
             projectVideo.currentTime = 0;
         }
+    });
+});
+document.addEventListener('DOMContentLoaded', function () {
+    const statBars = document.querySelectorAll('.stat-fill');
+    const statBarObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const statFill = entry.target;
+                const targetWidth = statFill.getAttribute('data-width');
+                statFill.style.setProperty('--target-width', targetWidth);
+                setTimeout(() => {
+                    statFill.classList.add('animate');
+                }, 100);
+                statBarObserver.unobserve(statFill);
+            }
+        });
+    }, {
+        threshold: 0.3,
+        rootMargin: '0px 0px -20% 0px'
+    });
+    statBars.forEach(statBar => {
+        statBarObserver.observe(statBar);
     });
 });
