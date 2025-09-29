@@ -9,7 +9,7 @@
     <link rel="icon" type="image/x-icon" href="assets/images/dyames.ico">
 </head>
 
-<body>
+<body oncontextmenu="return false;">
     <div class="background"></div>
     <div class="grid"></div>
 
@@ -21,7 +21,7 @@
             </a>
         </div>
         <ul>
-            <li><a href="#home" class="nav-link active" section="home">Home</a></li>
+            <li><a href="#home" class="nav-link" section="home">Home</a></li>
             <li><a href="#skills" class="nav-link" section="skills">Skills</a></li>
             <li><a href="#projects" class="nav-link" section="projects">Projects</a></li>
             <li><a href="#contact" class="nav-link" section="contact">Contact</a></li>
@@ -31,9 +31,10 @@
     <section id="home" class="section hero">
         <div class="section-content hero-content">
             <div class="flex-container">
-                <div class="profile-container">
-                    <img src="assets/images/james.jpg" alt="James Caña" class="profile-photo">
-                    <div class="profile-ring"></div>
+                <div class="profile-container" oncontextmenu="return false;" draggable="false">
+                    <img src="assets/images/james.jpg" alt="James Caña" class="profile-photo"
+                        oncontextmenu="return false;" draggable="false">
+                    <div class="profile-ring" draggable="false"></div>
                 </div>
 
                 <div class="text-container">
@@ -58,10 +59,9 @@
                     </svg>
                 </a>
                 <a href="https://x.com/jhamespaul06" class="social-icon" target="_blank" rel="noopener noreferrer">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                         <path
-                            d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+                            d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                 </a>
                 <a href="https://www.instagram.com/dyamessu/" class="social-icon" target="_blank"
@@ -86,10 +86,12 @@
             <div class="skills-container">
                 <div class="skill-card">
                     <div class="skill-icon">
-                        <img src="assets/images/frontend.png" alt="icons" style="object-fit: contain; width: 120px; height: 120px;">
+                        <img src="assets/images/frontend.png" alt="icons"
+                            style="object-fit: contain; width: 120px; height: 120px;">
                     </div>
                     <h3 class="skill-title">Frontend Development</h3>
-                    <p>Expert in React, Vue.js, and modern CSS frameworks. Creating responsive and interactive user interfaces.</p>
+                    <p>Expert in React, Vue.js, and modern CSS frameworks. Creating responsive and interactive user
+                        interfaces.</p>
                     <div class="progress-bar">
                         <div class="stats">
                             <div class="stat-item">
@@ -109,10 +111,11 @@
                         </div>
                     </div>
                 </div>
-    
+
                 <div class="skill-card">
                     <div class="skill-icon">
-                        <img src="assets/images/backend.png" alt="icons" style="object-fit: contain; width: 120px; height: 120px;">
+                        <img src="assets/images/backend.png" alt="icons"
+                            style="object-fit: contain; width: 120px; height: 120px;">
                     </div>
                     <h3 class="skill-title">Backend Development</h3>
                     <p>Node.js, Python, and SQL/NoSQL databases. Building scalable and secure server applications.</p>
@@ -135,10 +138,11 @@
                         </div>
                     </div>
                 </div>
-    
+
                 <div class="skill-card">
                     <div class="skill-icon">
-                        <img src="assets/images/design.png" alt="icons" style="object-fit: contain; width: 120px; height: 120px;">
+                        <img src="assets/images/design.png" alt="icons"
+                            style="object-fit: contain; width: 120px; height: 120px;">
                     </div>
                     <h3 class="skill-title">UI/UX Design</h3>
                     <p>Figma, Adobe XD, and Sketch. Creating intuitive and beautiful user experiences.</p>
@@ -161,10 +165,11 @@
                         </div>
                     </div>
                 </div>
-    
+
                 <div class="skill-card">
                     <div class="skill-icon">
-                        <img src="assets/images/devops.png" alt="icons" style="object-fit: contain; width: 120px; height: 120px;">
+                        <img src="assets/images/devops.png" alt="icons"
+                            style="object-fit: contain; width: 120px; height: 120px;">
                     </div>
                     <h3 class="skill-title">Development and Operations</h3>
                     <p>Docker, AWS, and CI/CD pipelines. Automating deployment and maintaining infrastructure.</p>
@@ -194,72 +199,76 @@
     <section id="projects" class="section">
         <div class="section-content">
             <h2 class="section-title">Recent Projects</h2>
-            <div class="carousel-container">
-                <div class="carousel-wrapper">
-                    <div class="carousel-track">
-
-                        <div class="project-card carousel-slide">
-                            <div class="project-image">
-                                <h2>E-Library</h2><br>
-                                <a href="assets/images/e-library.png" target="_blank" class="work__link">
-                                    <img src="assets/images/e-library.png" alt="E-Library Project">
-                                </a>
-                            </div>
-                            <p>E-Library is a digital library system that allows users to browse, search, and access books and digital resources in City of Malabon University Library.</p>
-                        </div>
-
-                        <div class="project-card carousel-slide">
-                            <div class="project-image">
-                                <h2>Smonify</h2><br>
-                                <a href="assets/images/smonify.png" target="_blank" class="work__link">
-                                    <img src="assets/images/smonify.png" alt="Smonify Project">
-                                </a>
-                            </div>
-                            <p>A Smonify is a Website system that allows users to play and listen to their favorite artist.</p>
-                        </div>
-
-                        <div class="project-card carousel-slide">
-                            <div class="project-image">
-                                <h2>Kalkulator</h2><br>
-                                <a href="assets/images/kalkulator.png" target="_blank" class="work__link">
-                                    <img src="assets/images/kalkulator.png" alt="Kalkulator Project">
-                                </a>
-                            </div>
-                            <p>A discount calculator is a tool that helps users quickly determine the final price of an item
-                                after applying a discount.</p>
-                        </div>
-
-                        <div class="project-card carousel-slide">
-                            <div class="project-image">
-                                <h2>Hospital Inventory Management</h2><br>
-                                <a href="assets/images/hospital.png" target="_blank" class="work__link">
-                                    <img src="assets/images/hospital.png" alt="Hospital Inventory Management">
-                                </a>
-                            </div>
-                            <p>Hospital inventory management is a system designed to track, manage, and optimize the stock of
-                                medical supplies, equipment, and pharmaceuticals in a healthcare facility.</p>
-                        </div>
-                        
-                    </div>
-                </div>
-                
+            <div class="carousel-section">
                 <button class="carousel-btn carousel-btn-prev" aria-label="Previous project">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="15,18 9,12 15,6"></polyline>
                     </svg>
                 </button>
+                
+                <div class="carousel-container">
+                    <div class="carousel-wrapper">
+                        <div class="carousel-track">
+                            <div class="project-card carousel-slide">
+                                <div class="project-image">
+                                    <h2>E-Library</h2><br>
+                                    <a class="work__link video-trigger" data-video="assets/videos/e-library.mp4">
+                                        <img src="assets/images/e-library.png" alt="E-Library Project">
+                                    </a>
+                                </div>
+                                <p>E-Library is a digital library system that allows users to browse, search, and access
+                                    books and digital resources in City of Malabon University Library.</p>
+                            </div>
+
+                            <div class="project-card carousel-slide">
+                                <div class="project-image">
+                                    <h2>Smonify</h2><br>
+                                    <a class="work__link video-trigger" data-video="assets/videos/smonify.mp4">
+                                        <img src="assets/images/smonify.png" alt="Smonify Project">
+                                    </a>
+                                </div>
+                                <p>A Smonify is a Website system that allows users to play and listen to their favorite
+                                    artist.</p>
+                            </div>
+
+                            <div class="project-card carousel-slide">
+                                <div class="project-image">
+                                    <h2>RawMIXPERT</h2><br>
+                                    <a class="work__link video-trigger" data-video="assets/videos/rawmixpert.mp4">
+                                        <img src="assets/images/rawmixpert.jpg" alt="Hospital Inventory Management">
+                                    </a>
+                                </div>
+                                <p>A mobile app that simplifies raw mix cement calculations, enabling quick input, accurate
+                                    mix proportioning,
+                                    and real-time access for efficient cement production.</p>
+                            </div>
+
+                            <div class="project-card carousel-slide">
+                                <div class="project-image">
+                                    <h2>SLR - ASL</h2><br>
+                                    <a class="work__link video-trigger" data-video="assets/videos/slr-asl.mp4">
+                                        <img src="assets/images/slr-asl.png" alt="Sign Language Recognition - ASL">
+                                    </a>
+                                </div>
+                                <p>A Website system that recognizes sign language gestures in real time, converting them
+                                    into text or speech for faster and easier communication.</p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="carousel-indicators">
+                        <!-- Indicators will be automatically generated by JavaScript -->
+                    </div>
+                </div>
+
                 <button class="carousel-btn carousel-btn-next" aria-label="Next project">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9,18 15,12 9,6"></polyline>
                     </svg>
                 </button>
-                
-                <div class="carousel-indicators">
-                    <button class="carousel-indicator active" data-slide="0" aria-label="Go to slide 1"></button>
-                    <button class="carousel-indicator" data-slide="1" aria-label="Go to slide 2"></button>
-                    <button class="carousel-indicator" data-slide="2" aria-label="Go to slide 3"></button>
-                    <button class="carousel-indicator" data-slide="3" aria-label="Go to slide 4"></button>
-                </div>
             </div>
         </div>
     </section>
@@ -267,13 +276,14 @@
     <section id="contact" class="section">
         <div class="section-content">
             <h2 class="section-title">Get in Touch</h2>
-            <p class="contact-description">Whether you're interested in working with me or just want to say hello, I'd love to hear from you!</p>
+            <p class="contact-description">Whether you're interested in working with me or just want to say hello, I'd
+                love to hear from you!</p>
             <div class="contact-container">
                 <form id="contactForm" class="contact-form" action="https://formspree.io/f/mldljydz" method="POST">
                     <div class="form-group">
                         <label for="name">Name</label>
                         <input type="text" id="name" name="name" required>
-                    </div> 
+                    </div>
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
@@ -296,6 +306,34 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <p id="modalMessage"></p>
+        </div>
+    </div>
+
+    <!-- Video Popup Modal -->
+    <div id="videoModal" class="video-modal">
+        <div class="video-modal-content">
+            <span class="video-close-button">&times;</span>
+            <div class="video-container">
+                <video id="projectVideo" autoplay loop>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-play-pause-indicator" id="videoPlayPauseIndicator">
+                    <div class="indicator-icon">
+                        <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="custom-progress-bar">
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

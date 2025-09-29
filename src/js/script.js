@@ -1,26 +1,53 @@
+// Centralized navigation state management with smooth transitions
+function updateNavigationState(targetSectionId) {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const navBrand = document.querySelector('.nav-brand');
+
+    // Update active nav link with smooth transition
+    navLinks.forEach(link => {
+        const isTargetLink = link.getAttribute('section') === targetSectionId;
+
+        if (isTargetLink && !link.classList.contains('active')) {
+            // Remove active class from all links first
+            navLinks.forEach(l => l.classList.remove('active'));
+
+            // Add active class to target link with a slight delay for smooth transition
+            requestAnimationFrame(() => {
+                link.classList.add('active');
+            });
+        } else if (!isTargetLink && link.classList.contains('active')) {
+            link.classList.remove('active');
+        }
+    });
+
+    // Update brand visibility (only on desktop)
+    if (navBrand && window.innerWidth > 768) {
+        if (targetSectionId !== 'home') {
+            navBrand.classList.add('visible');
+        } else {
+            navBrand.classList.remove('visible');
+        }
+    }
+}
+
+// Standard navigation click handlers
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
 
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-
-        this.classList.add('active');
-
         const href = this.getAttribute('href');
-        const target = document.querySelector(href);
-        target.scrollIntoView({
-            behavior: 'smooth'
-        });
 
-        // Reflect brand visibility immediately on click (only on desktop)
-        const navBrandEl = document.querySelector('.nav-brand');
-        if (navBrandEl && window.innerWidth > 768) {
-            if (href !== '#home') {
-                navBrandEl.classList.add('visible');
-            } else {
-                navBrandEl.classList.remove('visible');
+        // Only proceed with smooth scrolling if href is a valid selector (not just "#")
+        if (href && href !== '#' && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                // Update navigation state immediately
+                updateNavigationState(target.id);
+
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             }
         }
     });
@@ -29,105 +56,148 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 const sections = document.querySelectorAll('.section');
 const navLinks = document.querySelectorAll('.nav-link');
 const navBrand = document.querySelector('.nav-brand');
-const isMobileViewport = window.innerWidth <= 768;
 
+// Simple intersection observer for scroll animations
 const revealOptions = {
     root: null,
-    threshold: new Array(11).fill(0).map((_, i) => i / 10),
-    rootMargin: '-10%'
+    threshold: 0.1,
+    rootMargin: '0px'
 };
 
 const revealSection = (entries, observer) => {
     entries.forEach(entry => {
-        const section = entry.target;
-        const sectionContent = Array.from(section.children);
-
-        // Determine if the section's center crosses a comfortable point
-        const viewportCenterY = window.innerHeight * 0.4;
-        const rect = section.getBoundingClientRect();
-        const isCenterInView = rect.top <= viewportCenterY && rect.bottom >= viewportCenterY;
-
-        if (isMobileViewport) {
-            // On mobile, ensure content is fully visible once intersecting to avoid half-loaded look
-            if (entry.isIntersecting) {
-                sectionContent.forEach((element) => {
-                    element.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                    element.style.opacity = '1';
-                    element.style.transform = 'translateY(0)';
-                });
-            }
-        } else {
-            const opacity = Math.min(entry.intersectionRatio * 1.5, 1);
-            const translateY = 50 * (1 - entry.intersectionRatio);
+        if (entry.isIntersecting) {
+            const section = entry.target;
+            const sectionContent = Array.from(section.children);
 
             sectionContent.forEach((element, index) => {
                 const delay = index * 100;
                 element.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                element.style.opacity = opacity;
-                element.style.transform = `translateY(${translateY}px)`;
+                element.style.transitionDelay = `${delay}ms`;
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
             });
-        }
-
-        // Update active nav based on the section position in the viewport (works for tall sections)
-        if (isCenterInView) {
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('section') === section.id) {
-                    link.classList.add('active');
-                }
-            });
-            // Toggle navbar brand visibility when not on Home (only on desktop)
-            if (navBrand && window.innerWidth > 768) {
-                if (section.id !== 'home') {
-                    navBrand.classList.add('visible');
-                } else {
-                    navBrand.classList.remove('visible');
-                }
-            }
         }
     });
 };
 
 const sectionObserver = new IntersectionObserver(revealSection, revealOptions);
 
+// Initialize sections for animation
 sections.forEach(section => {
     if (!section.classList.contains('hero')) {
         Array.from(section.children).forEach(child => {
-            if (isMobileViewport) {
-                // Start visible on mobile to avoid partial render states
-                child.style.opacity = '1';
-                child.style.transform = 'translateY(0)';
-            } else {
-                child.style.opacity = '0';
-                child.style.transform = 'translateY(50px)';
-            }
+            child.style.opacity = '0';
+            child.style.transform = 'translateY(30px)';
         });
     }
     sectionObserver.observe(section);
 });
 
-// Helper to robustly update active nav on scroll using viewport center
-function updateActiveNav() {
-    const viewportCenterY = window.innerHeight * 0.4;
-    let activeSectionId = null;
-    sections.forEach(section => {
-        const rect = section.getBoundingClientRect();
-        if (rect.top <= viewportCenterY && rect.bottom >= viewportCenterY) {
-            activeSectionId = section.id;
-        }
-    });
-    if (activeSectionId) {
-        navLinks.forEach(link => {
-            link.classList.toggle('active', link.getAttribute('section') === activeSectionId);
+// Enhanced navigation state update using Intersection Observer
+let activeSectionId = 'home'; // Default to home section
+let navObserver = null;
+
+// Mobile detection function
+function isMobile() {
+    return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Create intersection observer for navigation with mobile-optimized settings
+function createNavObserver() {
+    // Destroy existing observer if it exists
+    if (navObserver) {
+        navObserver.disconnect();
+    }
+
+    // Create intersection observer for navigation with optimized thresholds
+    const navObserverOptions = {
+        root: null,
+        rootMargin: isMobile() ? '-10% 0px -10% 0px' : '-25% 0px -25% 0px', // More sensitive on mobile
+        threshold: isMobile() ? [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] : [0, 0.25, 0.5, 0.75, 1.0]
+    };
+
+    navObserver = new IntersectionObserver((entries) => {
+        let mostVisibleSection = null;
+        let maxVisibility = 0;
+
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const visibility = entry.intersectionRatio;
+                if (visibility > maxVisibility) {
+                    maxVisibility = visibility;
+                    mostVisibleSection = entry.target.id;
+                }
+            }
         });
-        // Only show brand on desktop
-        if (navBrand && window.innerWidth > 768) {
-            if (activeSectionId !== 'home') {
-                navBrand.classList.add('visible');
-            } else {
-                navBrand.classList.remove('visible');
+
+        // Update navigation with mobile-specific thresholds
+        const minVisibility = isMobile() ? 0.15 : 0.25;
+        if (mostVisibleSection && maxVisibility > minVisibility) {
+            if (activeSectionId !== mostVisibleSection) {
+                activeSectionId = mostVisibleSection;
+                updateNavigationState(activeSectionId);
             }
         }
+    }, navObserverOptions);
+
+    // Observe all sections for navigation
+    sections.forEach(section => {
+        navObserver.observe(section);
+    });
+}
+
+// Initialize the observer
+createNavObserver();
+
+// Enhanced fallback function for scroll-based navigation with mobile optimization
+function updateActiveNav() {
+    const scrollPosition = window.pageYOffset + window.innerHeight / 2;
+    let fallbackSectionId = null;
+
+    // More aggressive detection for mobile devices
+    const viewportThreshold = isMobile() ? window.innerHeight * 0.3 : window.innerHeight * 0.5;
+
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionBottom = sectionTop + section.offsetHeight;
+
+        // For mobile, use a more sensitive detection
+        if (isMobile()) {
+            // Check if any part of the section is in the top 30% of viewport
+            if (sectionTop <= window.pageYOffset + viewportThreshold &&
+                sectionBottom >= window.pageYOffset) {
+                fallbackSectionId = section.id;
+            }
+        } else {
+            // Check if the middle of the viewport is within this section
+            if (scrollPosition >= sectionTop && scrollPosition <= sectionBottom) {
+                fallbackSectionId = section.id;
+            }
+        }
+    });
+
+    // If no section is found, find the closest one
+    if (!fallbackSectionId) {
+        let closestDistance = Infinity;
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionBottom = sectionTop + section.offsetHeight;
+            const distance = Math.min(
+                Math.abs(scrollPosition - sectionTop),
+                Math.abs(scrollPosition - sectionBottom)
+            );
+
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                fallbackSectionId = section.id;
+            }
+        });
+    }
+
+    if (fallbackSectionId && fallbackSectionId !== activeSectionId) {
+        activeSectionId = fallbackSectionId;
+        updateNavigationState(activeSectionId);
     }
 }
 
@@ -173,101 +243,72 @@ const updateParallax = () => {
     });
 };
 
-// Simple and crisp scroll-to-section functionality
-let isScrolling = false;
-
-function scrollToSection(sectionIndex) {
-    if (isScrolling) return;
-    
-    const sections = document.querySelectorAll('.section');
-    if (sectionIndex < 0 || sectionIndex >= sections.length) return;
-    
-    isScrolling = true;
-    
-    const targetSection = sections[sectionIndex];
-    
-    // Update navigation
-    const targetId = targetSection.id;
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('section') === targetId) {
-            link.classList.add('active');
-        }
-    });
-    
-    // Snap directly to the section
-    targetSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-    });
-    
-    // Reset scrolling flag after animation
-    setTimeout(() => {
-        isScrolling = false;
-    }, 600);
-}
-
-// Simple scroll event listener
+// Standard scroll event listener for navigation state and effects
 let lastScrollY = window.pageYOffset;
-let scrollThreshold = 30; // Minimum scroll distance to trigger
 
 window.addEventListener('scroll', () => {
-    const currentScrollY = window.pageYOffset;
-    const scrollDelta = Math.abs(currentScrollY - lastScrollY);
-    
-    // Only trigger if scroll distance is significant and not already scrolling
-    if (scrollDelta > scrollThreshold && !isScrolling) {
-        const sections = document.querySelectorAll('.section');
-        
-        // Find current section
-        let currentSection = 0;
-        for (let i = 0; i < sections.length; i++) {
-            const sectionTop = sections[i].offsetTop;
-            const sectionBottom = sectionTop + sections[i].offsetHeight;
-            
-            if (currentScrollY >= sectionTop && currentScrollY < sectionBottom) {
-                currentSection = i;
-                break;
-            }
-        }
-        
-        // Determine scroll direction and target section
-        if (currentScrollY > lastScrollY && currentSection < sections.length - 1) {
-            // Scrolling down - go to next section
-            scrollToSection(currentSection + 1);
-        } else if (currentScrollY < lastScrollY && currentSection > 0) {
-            // Scrolling up - go to previous section
-            scrollToSection(currentSection - 1);
-        }
-    }
-    
-    lastScrollY = currentScrollY;
-    
-    // Existing scroll functionality
+    // Use fallback navigation update less frequently (throttled)
     if (!ticking) {
         requestAnimationFrame(() => {
+            // Use fallback more frequently on mobile for better responsiveness
+            if (isMobile() || window.pageYOffset < 100) {
+                updateActiveNav();
+            }
+
             updateParallax();
-            updateActiveNav();
             ticking = false;
         });
         ticking = true;
     }
 
+    // Navigation scroll effect
     const nav = document.querySelector('nav');
     if (window.pageYOffset > 50) {
         nav.classList.add('scrolled');
     } else {
         nav.classList.remove('scrolled');
     }
+
+    lastScrollY = window.pageYOffset;
 });
 
-// Handle window resize to update mobile detection
+// Initialize navigation state on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Set initial active state
+    updateActiveNav();
+
+    // Force navigation update for mobile devices
+    if (isMobile()) {
+        // Multiple attempts to ensure proper detection on mobile
+        setTimeout(() => updateActiveNav(), 50);
+        setTimeout(() => updateActiveNav(), 200);
+        setTimeout(() => updateActiveNav(), 500);
+    }
+
+    // Ensure proper initial state after a short delay
+    setTimeout(() => {
+        if (window.pageYOffset < 50) {
+            updateNavigationState('home');
+        }
+    }, 100);
+});
+
+// Handle window resize and mobile optimization
 window.addEventListener('resize', () => {
     const navBrand = document.querySelector('.nav-brand');
     if (navBrand && window.innerWidth <= 768) {
         // Force hide on mobile
         navBrand.classList.remove('visible');
     }
+
+    // Recreate observer with new mobile/desktop settings
+    createNavObserver();
+
+    // Recalculate navigation state after resize
+    // Use a small delay to ensure layout is complete
+    setTimeout(() => {
+        updateActiveNav();
+    }, 100);
 });
 
 const cardOptions = {
@@ -289,6 +330,11 @@ const cardObserver = new IntersectionObserver((entries) => {
 }, cardOptions);
 
 document.querySelectorAll('.project-card, .skill-card').forEach((card) => {
+    // Skip carousel project cards to avoid fadeup animation
+    if (card.closest('.carousel-section')) {
+        return;
+    }
+    
     card.style.opacity = '0';
     card.style.transform = 'translateY(30px) scale(0.95)';
     cardObserver.observe(card);
@@ -355,14 +401,41 @@ if (yearSpan) {
 
 
 // Carousel Implementation
-document.addEventListener('DOMContentLoaded', function() {
-    const carousel = document.querySelector('.carousel-container');
-    if (!carousel) return;
+document.addEventListener('DOMContentLoaded', function () {
+    const carouselSection = document.querySelector('.carousel-section');
+    if (!carouselSection) return;
 
+    const carousel = carouselSection.querySelector('.carousel-container');
     const track = carousel.querySelector('.carousel-track');
     const slides = carousel.querySelectorAll('.carousel-slide');
-    const prevBtn = carousel.querySelector('.carousel-btn-prev');
-    const nextBtn = carousel.querySelector('.carousel-btn-next');
+    const prevBtn = carouselSection.querySelector('.carousel-btn-prev');
+    const nextBtn = carouselSection.querySelector('.carousel-btn-next');
+    const indicatorsContainer = carousel.querySelector('.carousel-indicators');
+    const carouselWrapper = carousel.querySelector('.carousel-wrapper');
+
+    // Dynamically generate indicators based on number of slides
+    function generateIndicators() {
+        indicatorsContainer.innerHTML = ''; // Clear existing indicators
+
+        slides.forEach((slide, index) => {
+            const indicator = document.createElement('button');
+            indicator.className = 'carousel-indicator';
+            indicator.setAttribute('data-slide', index);
+            indicator.setAttribute('aria-label', `Go to slide ${index + 1}`);
+
+            // Set first indicator as active
+            if (index === 0) {
+                indicator.classList.add('active');
+            }
+
+            indicatorsContainer.appendChild(indicator);
+        });
+    }
+
+    // Generate indicators
+    generateIndicators();
+
+    // Get the newly created indicators
     const indicators = carousel.querySelectorAll('.carousel-indicator');
 
     // Disable native drag thumbnail preview on project images and links
@@ -370,20 +443,20 @@ document.addEventListener('DOMContentLoaded', function() {
         el.setAttribute('draggable', 'false');
         el.addEventListener('dragstart', (e) => e.preventDefault());
     });
-    track.addEventListener('dragstart', (e) => e.preventDefault());
 
     let currentSlide = 0;
     const slideCount = slides.length;
 
     function updateCarousel() {
-        const slideWidth = carousel.offsetWidth;
+        const slideWidth = carouselWrapper.offsetWidth;
         track.style.transform = `translateX(-${currentSlide * slideWidth}px)`;
-        
-        // Update indicators
-        indicators.forEach((indicator, index) => {
+
+        // Update indicators (get fresh reference since they're dynamically generated)
+        const currentIndicators = carousel.querySelectorAll('.carousel-indicator');
+        currentIndicators.forEach((indicator, index) => {
             indicator.classList.toggle('active', index === currentSlide);
         });
-        
+
         // Update button states
         prevBtn.style.opacity = currentSlide === 0 ? '0.5' : '1';
         nextBtn.style.opacity = currentSlide === slideCount - 1 ? '0.5' : '1';
@@ -410,13 +483,17 @@ document.addEventListener('DOMContentLoaded', function() {
     prevBtn.addEventListener('click', prevSlide);
     nextBtn.addEventListener('click', nextSlide);
 
-    indicators.forEach((indicator, index) => {
-        indicator.addEventListener('click', () => goToSlide(index));
+    // Add event listeners to indicators (they're dynamically generated)
+    indicatorsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('carousel-indicator')) {
+            const slideIndex = parseInt(e.target.getAttribute('data-slide'));
+            goToSlide(slideIndex);
+        }
     });
 
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
-        if (document.activeElement.closest('.carousel-container')) {
+        if (document.activeElement.closest('.carousel-section')) {
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 prevSlide();
@@ -427,160 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Touch/swipe support
-    let startX = 0;
-    let currentX = 0;
-    let isDragging = false;
-    let touchStartedOnAnchor = false;
-    let touchMoved = false;
 
-    track.addEventListener('touchstart', (e) => {
-        // Don't start dragging if touching buttons or indicators
-        if (e.target.closest('.carousel-btn') || e.target.closest('.carousel-indicator')) {
-            return;
-        }
-        startX = e.touches[0].clientX;
-        currentX = startX;
-        isDragging = true;
-        touchStartedOnAnchor = !!e.target.closest('a');
-        touchMoved = false;
-        track.style.transition = 'none';
-    }, { passive: true });
-
-    track.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        currentX = e.touches[0].clientX;
-        let diff = startX - currentX; // positive when swiping left (to next slide)
-
-        if (!touchMoved && Math.abs(diff) > 5) {
-            touchMoved = true;
-        }
-
-        // Add gentle resistance at edges
-        if (currentSlide === 0 && diff < 0) {
-            diff *= 0.3;
-        } else if (currentSlide === slideCount - 1 && diff > 0) {
-            diff *= 0.3;
-        }
-
-        // Move track with correct sign so swiping left reveals next slide
-        track.style.transform = `translateX(-${currentSlide * carousel.offsetWidth + diff}px)`;
-        // Prevent accidental page scroll while dragging
-        e.preventDefault();
-    }, { passive: false });
-
-    track.addEventListener('touchend', () => {
-        if (!isDragging) return;
-        isDragging = false;
-        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-        const diff = startX - currentX;
-        const threshold = carousel.offsetWidth * 0.3;
-
-        if (Math.abs(diff) > threshold) {
-            if (diff > 0) {
-                nextSlide();
-            } else {
-                prevSlide();
-            }
-        } else {
-            updateCarousel();
-        }
-
-        // If swipe started on an anchor and moved, suppress the follow-up click
-        if (touchStartedOnAnchor && touchMoved) {
-            const preventNextClick = (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                document.removeEventListener('click', preventNextClick, true);
-            };
-            document.addEventListener('click', preventNextClick, true);
-        }
-    });
-
-    // Mouse drag support
-    let mouseStartX = 0;
-    let mouseCurrentX = 0;
-    let isMouseDragging = false;
-    let dragOffset = 0;
-    let dragStartedOnAnchor = false;
-    let hasMouseMoved = false;
-
-    track.addEventListener('mousedown', (e) => {
-        // Don't start dragging if clicking on buttons, links, or indicators
-        if (e.target.closest('.carousel-btn') || 
-            e.target.closest('.carousel-indicator') || 
-            e.target.closest('button')) {
-            return;
-        }
-        
-        mouseStartX = e.clientX;
-        isMouseDragging = true;
-        track.style.cursor = 'grabbing';
-        track.style.userSelect = 'none';
-        track.style.transition = 'none';
-        dragStartedOnAnchor = !!e.target.closest('a');
-        hasMouseMoved = false;
-        e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isMouseDragging) return;
-        mouseCurrentX = e.clientX;
-        dragOffset = mouseStartX - mouseCurrentX;
-        if (!hasMouseMoved && Math.abs(dragOffset) > 3) {
-            hasMouseMoved = true;
-        }
-        
-        // Add resistance at edges
-        const maxDrag = carousel.offsetWidth * 0.5;
-        if (currentSlide === 0 && dragOffset < 0) {
-            dragOffset *= 0.3;
-        } else if (currentSlide === slideCount - 1 && dragOffset > 0) {
-            dragOffset *= 0.3;
-        }
-        
-        // Use the same sign convention as touch: positive dragOffset (drag left) moves track left
-        track.style.transform = `translateX(-${currentSlide * carousel.offsetWidth + dragOffset}px)`;
-    });
-
-    document.addEventListener('mouseup', () => {
-        if (!isMouseDragging) return;
-        isMouseDragging = false;
-        track.style.cursor = 'grab';
-        track.style.userSelect = 'auto';
-        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-        
-        const threshold = carousel.offsetWidth * 0.2;
-        
-        if (Math.abs(dragOffset) > threshold) {
-            if (dragOffset > 0) {
-                nextSlide();
-            } else {
-                prevSlide();
-            }
-        } else {
-            updateCarousel();
-        }
-        
-        dragOffset = 0;
-
-        // If drag started on a link and moved, cancel the subsequent click
-        if (dragStartedOnAnchor && hasMouseMoved) {
-            const preventNextClick = (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                document.removeEventListener('click', preventNextClick, true);
-            };
-            document.addEventListener('click', preventNextClick, true);
-        }
-    });
-
-    // Prevent text selection while dragging
-    track.addEventListener('selectstart', (e) => {
-        if (isMouseDragging) {
-            e.preventDefault();
-        }
-    });
 
     // Initialize carousel
     updateCarousel();
@@ -590,30 +514,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Gooey Cursor Implementation
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if device is mobile
     const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
+
     // Skip cursor initialization on mobile devices
     if (isMobile) {
         return;
     }
-    
+
     const TAIL_LENGTH = 20;
-    
+
     const cursor = document.getElementById('cursor');
     if (!cursor) return;
-    
+
     let mouseX = 0;
     let mouseY = 0;
-    
+
     let cursorCircles;
-    let cursorHistory = Array(TAIL_LENGTH).fill({x: 0, y: 0});
-    
+    let cursorHistory = Array(TAIL_LENGTH).fill({ x: 0, y: 0 });
+
     let cursorTimeout;
     let isCursorHidden = false;
     const INACTIVITY_TIMEOUT = 1000;
-    
+
     function onMouseMove(event) {
         // Show cursor if hidden
         showCursor();
@@ -627,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mouseX = event.clientX;
         mouseY = event.clientY;
     }
-    
+
     function hideCursor() {
         if (!isCursorHidden) {
             cursor.style.transition = 'opacity 0.5s ease-out';
@@ -647,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function initCursor() {
         // Clear any existing circles
         cursor.innerHTML = '';
-        
+
         for (let i = 0; i < TAIL_LENGTH; i++) {
             let div = document.createElement('div');
             div.classList.add('cursor-circle');
@@ -655,35 +579,341 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         cursorCircles = Array.from(document.querySelectorAll('.cursor-circle'));
     }
-    
-    function updateCursor() {  
+
+    function updateCursor() {
         if (!cursorCircles || cursorCircles.length === 0) return;
-        
+
         cursorHistory.shift();
         cursorHistory.push({ x: mouseX, y: mouseY });
-        
+
         for (let i = 0; i < TAIL_LENGTH; i++) {
             let current = cursorHistory[i];
             let next = cursorHistory[i + 1] || cursorHistory[TAIL_LENGTH - 1];
-            
+
             let xDiff = next.x - current.x;
             let yDiff = next.y - current.y;
-            
+
             current.x += xDiff * 0.35;
             current.y += yDiff * 0.35;
-            
+
             if (cursorCircles[i]) {
-                cursorCircles[i].style.transform = `translate(${current.x}px, ${current.y}px) scale(${i/TAIL_LENGTH})`;  
+                cursorCircles[i].style.transform = `translate(${current.x}px, ${current.y}px) scale(${i / TAIL_LENGTH})`;
             }
         }
         requestAnimationFrame(updateCursor);
     }
-    
+
     document.addEventListener('mousemove', onMouseMove, false);
-    
+
     initCursor();
     updateCursor();
-    
+
     // Initial hide of cursor after INACTIVITY_TIMEOUT
     cursorTimeout = setTimeout(hideCursor, INACTIVITY_TIMEOUT);
+});
+
+// Video Modal Implementation
+document.addEventListener('DOMContentLoaded', function () {
+    const videoModal = document.getElementById('videoModal');
+    const projectVideo = document.getElementById('projectVideo');
+    const videoCloseButton = document.querySelector('.video-close-button');
+    const videoTriggers = document.querySelectorAll('.video-trigger');
+    const progressFill = document.getElementById('progressFill');
+    const progressTrack = document.querySelector('.progress-track');
+    const videoPlayPauseIndicator = document.getElementById('videoPlayPauseIndicator');
+
+    // Function to show play/pause indicator
+    function showPlayPauseIndicator(isPaused) {
+        if (!videoPlayPauseIndicator) return;
+
+        // Remove existing classes
+        videoPlayPauseIndicator.classList.remove('show', 'hide', 'show-pause');
+
+        // Add appropriate classes
+        if (isPaused) {
+            videoPlayPauseIndicator.classList.add('show', 'show-pause');
+            // Don't auto-hide pause indicator - keep it visible
+        } else {
+            videoPlayPauseIndicator.classList.add('show');
+            // Auto-hide play indicator after 0.5 seconds
+            setTimeout(() => {
+                hidePlayPauseIndicator();
+            }, 500);
+        }
+    }
+
+    // Function to hide play/pause indicator
+    function hidePlayPauseIndicator() {
+        if (!videoPlayPauseIndicator) return;
+
+        videoPlayPauseIndicator.classList.remove('show');
+        videoPlayPauseIndicator.classList.add('hide');
+
+        // Remove hide class after transition
+        setTimeout(() => {
+            videoPlayPauseIndicator.classList.remove('hide', 'show-pause');
+        }, 300);
+    }
+
+    // Function to update progress bar with smooth animation
+    function updateProgress() {
+        if (projectVideo.duration) {
+            const progress = (projectVideo.currentTime / projectVideo.duration) * 100;
+            progressFill.style.width = progress + '%';
+        }
+    }
+
+    // Smooth progress bar animation using requestAnimationFrame
+    let progressAnimationId;
+    function animateProgress() {
+        updateProgress();
+        if (!projectVideo.paused) {
+            progressAnimationId = requestAnimationFrame(animateProgress);
+        }
+    }
+
+    // Function to show video modal
+    function showVideoModal(videoSrc) {
+        projectVideo.src = videoSrc;
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+        // Small delay to ensure proper initialization
+        requestAnimationFrame(() => {
+            videoModal.classList.add('show');
+        });
+
+        // Start smooth progress tracking when video starts playing
+        projectVideo.addEventListener('play', function () {
+            animateProgress();
+            showPlayPauseIndicator(false); // Show play indicator
+        });
+
+        projectVideo.addEventListener('pause', function () {
+            if (progressAnimationId) {
+                cancelAnimationFrame(progressAnimationId);
+            }
+            showPlayPauseIndicator(true); // Show pause indicator
+        });
+    }
+
+    // Function to hide video modal
+    function hideVideoModal() {
+        videoModal.classList.remove('show');
+        document.body.style.overflow = 'auto'; // Restore scrolling
+        // Pause video when modal is closed
+        projectVideo.pause();
+        projectVideo.currentTime = 0;
+        progressFill.style.width = '0%';
+
+        // Stop progress animation
+        if (progressAnimationId) {
+            cancelAnimationFrame(progressAnimationId);
+        }
+
+        // Hide play/pause indicator
+        hidePlayPauseIndicator();
+    }
+
+    // Add click event listeners to video triggers
+    videoTriggers.forEach(trigger => {
+        trigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            const videoSrc = this.getAttribute('data-video');
+            if (videoSrc) {
+                showVideoModal(videoSrc);
+            }
+        });
+    });
+
+    // Close modal when close button is clicked
+    if (videoCloseButton) {
+        videoCloseButton.addEventListener('click', hideVideoModal);
+    }
+
+    // Close modal when clicking outside the video
+    videoModal.addEventListener('click', function (e) {
+        if (e.target === videoModal) {
+            hideVideoModal();
+        }
+    });
+
+    // Close modal with Escape key and play/pause with Spacebar
+    document.addEventListener('keydown', function (e) {
+        if (videoModal.classList.contains('show')) {
+            if (e.key === 'Escape') {
+                hideVideoModal();
+            } else if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault(); // Prevent page scroll
+                if (projectVideo.paused) {
+                    projectVideo.play();
+                } else {
+                    projectVideo.pause();
+                }
+            }
+        }
+    });
+
+    // Video click to play/pause
+    projectVideo.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (projectVideo.paused) {
+            projectVideo.play();
+        } else {
+            projectVideo.pause();
+        }
+    });
+
+    // Progress bar click to seek and drag functionality
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartTime = 0;
+    let wasPlaying = false;
+
+    if (progressTrack) {
+        // Click to seek (only if not dragging)
+        progressTrack.addEventListener('click', function (e) {
+            if (!isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (projectVideo.duration) {
+                    const rect = progressTrack.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+                    const newTime = percentage * projectVideo.duration;
+                    projectVideo.currentTime = newTime;
+                }
+            }
+        });
+
+        // Mouse drag functionality
+        progressTrack.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            isDragging = true;
+            dragStartX = e.clientX;
+            wasPlaying = !projectVideo.paused;
+
+            // Add dragging class for visual feedback
+            progressTrack.classList.add('dragging');
+
+            // Pause video while dragging
+            projectVideo.pause();
+
+            // Immediately update position on mousedown and set as drag start time
+            if (projectVideo.duration) {
+                const rect = progressTrack.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+                const newTime = percentage * projectVideo.duration;
+                projectVideo.currentTime = newTime;
+                dragStartTime = newTime; // Set drag start time to clicked position
+
+                // Immediately update the progress bar visual
+                const progress = (newTime / projectVideo.duration) * 100;
+                progressFill.style.width = progress + '%';
+            }
+        });
+
+        // Mouse move during drag
+        function handleMouseMove(e) {
+            if (isDragging && projectVideo.duration) {
+                const rect = progressTrack.getBoundingClientRect();
+                const deltaX = e.clientX - dragStartX;
+                const deltaPercentage = deltaX / rect.width;
+                const newTime = Math.max(0, Math.min(projectVideo.duration, dragStartTime + (deltaPercentage * projectVideo.duration)));
+
+                projectVideo.currentTime = newTime;
+
+                // Immediately update the progress bar visual
+                const progress = (newTime / projectVideo.duration) * 100;
+                progressFill.style.width = progress + '%';
+            }
+        }
+
+        // Mouse up to end drag
+        function handleMouseUp(e) {
+            if (isDragging) {
+                isDragging = false;
+                progressTrack.classList.remove('dragging');
+
+                // Resume video if it was playing before drag
+                if (wasPlaying) {
+                    projectVideo.play();
+                }
+            }
+        }
+
+        // Add event listeners
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        // Touch support for mobile
+        progressTrack.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            isDragging = true;
+            dragStartX = e.touches[0].clientX;
+            wasPlaying = !projectVideo.paused;
+
+            progressTrack.classList.add('dragging');
+            projectVideo.pause();
+
+            // Immediately update position on touchstart and set as drag start time
+            if (projectVideo.duration) {
+                const rect = progressTrack.getBoundingClientRect();
+                const touchX = e.touches[0].clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, touchX / rect.width));
+                const newTime = percentage * projectVideo.duration;
+                projectVideo.currentTime = newTime;
+                dragStartTime = newTime; // Set drag start time to touched position
+
+                // Immediately update the progress bar visual
+                const progress = (newTime / projectVideo.duration) * 100;
+                progressFill.style.width = progress + '%';
+            }
+        }, { passive: false });
+
+        function handleTouchMove(e) {
+            if (isDragging && projectVideo.duration) {
+                e.preventDefault();
+                const rect = progressTrack.getBoundingClientRect();
+                const deltaX = e.touches[0].clientX - dragStartX;
+                const deltaPercentage = deltaX / rect.width;
+                const newTime = Math.max(0, Math.min(projectVideo.duration, dragStartTime + (deltaPercentage * projectVideo.duration)));
+
+                projectVideo.currentTime = newTime;
+
+                // Immediately update the progress bar visual
+                const progress = (newTime / projectVideo.duration) * 100;
+                progressFill.style.width = progress + '%';
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (isDragging) {
+                isDragging = false;
+                progressTrack.classList.remove('dragging');
+
+                if (wasPlaying) {
+                    projectVideo.play();
+                }
+            }
+        }
+
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+    }
+
+    // Pause video when modal is hidden (for better performance)
+    videoModal.addEventListener('transitionend', function (e) {
+        if (e.target === videoModal && !videoModal.classList.contains('show')) {
+            projectVideo.pause();
+            projectVideo.currentTime = 0;
+        }
+    });
 });
