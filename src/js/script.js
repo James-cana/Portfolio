@@ -797,9 +797,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showPlayPauseIndicator(isPaused) {
         if (!videoPlayPauseIndicator) return;
-        videoPlayPauseIndicator.classList.remove('show', 'hide', 'show-play');
+        videoPlayPauseIndicator.classList.remove('show', 'hide', 'show-pause');
         if (isPaused) {
-            videoPlayPauseIndicator.classList.add('show', 'show-play');
+            videoPlayPauseIndicator.classList.add('show', 'show-pause');
         } else {
             videoPlayPauseIndicator.classList.add('show');
             setTimeout(() => {
