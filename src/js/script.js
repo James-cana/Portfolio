@@ -28,10 +28,16 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         if (href && href !== '#' && href.startsWith('#')) {
             const target = document.querySelector(href);
             if (target) {
+                // Set flags to indicate user is clicking
+                isUserClicking = true;
+                isUserScrolling = true;
+                
                 // Update URL hash
                 window.location.hash = href;
-                // Update navigation state
+                // Update navigation state immediately
+                activeSectionId = target.id;
                 updateNavigationState(target.id);
+                
                 // Mobile-optimized scrolling
                 if (isMobile()) {
                     // Use instant scroll on mobile for better touch response
@@ -45,6 +51,11 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                             behavior: 'smooth',
                             block: 'start'
                         });
+                        // Reset flags after scroll completes
+                        setTimeout(() => {
+                            isUserClicking = false;
+                            isUserScrolling = false;
+                        }, 300);
                     }, 50);
                 } else {
                     // Desktop smooth scrolling
@@ -52,6 +63,11 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                         behavior: 'smooth',
                         block: 'start'
                     });
+                    // Reset flags after scroll completes
+                    setTimeout(() => {
+                        isUserClicking = false;
+                        isUserScrolling = false;
+                    }, 500);
                 }
             }
         }
@@ -79,11 +95,7 @@ const revealSection = (entries, observer) => {
                 element.style.transitionDelay = `${delay}ms`;
                 element.style.opacity = '1';
                 
-                if (scrollDirection === 'down') {
-                    element.style.transform = 'translateY(0)';
-                } else {
-                    element.style.transform = 'translateY(0)';
-                }
+                element.style.transform = 'translateY(0)';
             });
         } else {
             sectionContent.forEach((element, index) => {
@@ -92,11 +104,7 @@ const revealSection = (entries, observer) => {
                 element.style.transitionDelay = `${delay}ms`;
                 element.style.opacity = '0';
                 
-                if (scrollDirection === 'down') {
-                    element.style.transform = 'translateY(-30px)';
-                } else {
-                    element.style.transform = 'translateY(30px)';
-                }
+                element.style.transform = 'translateY(-30px)';
             });
         }
     });
@@ -117,6 +125,7 @@ let activeSectionId = 'home';
 let navObserver = null;
 let isUserScrolling = false;
 let scrollTimeout = null;
+let isUserClicking = false;
 
 function isMobile() {
     return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -128,13 +137,13 @@ function createNavObserver() {
     }
     const navObserverOptions = {
         root: null,
-        rootMargin: isMobile() ? '-15% 0px -15% 0px' : '-25% 0px -25% 0px',
+        rootMargin: isMobile() ? '-10% 0px -10% 0px' : '-25% 0px -25% 0px',
         threshold: isMobile() ? [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] : [0, 0.25, 0.5, 0.75, 1.0]
     };
 
     navObserver = new IntersectionObserver((entries) => {
-        // Only update if user is not actively scrolling
-        if (isUserScrolling) return;
+        // Don't update if user is actively clicking a nav link
+        if (isUserClicking) return;
         
         let mostVisibleSection = null;
         let maxVisibility = 0;
@@ -149,7 +158,7 @@ function createNavObserver() {
             }
         });
 
-        const minVisibility = isMobile() ? 0.2 : 0.25;
+        const minVisibility = isMobile() ? 0.1 : 0.25;
         if (mostVisibleSection && maxVisibility > minVisibility) {
             if (activeSectionId !== mostVisibleSection) {
                 activeSectionId = mostVisibleSection;
@@ -170,21 +179,19 @@ createNavObserver();
 function updateActiveNav() {
     const scrollPosition = window.pageYOffset + window.innerHeight / 2;
     let fallbackSectionId = null;
-    const viewportThreshold = isMobile() ? window.innerHeight * 0.3 : window.innerHeight * 0.5;
+    const viewportThreshold = isMobile() ? window.innerHeight * 0.2 : window.innerHeight * 0.5;
 
     sections.forEach(section => {
         const sectionTop = section.offsetTop;
         const sectionBottom = sectionTop + section.offsetHeight;
 
-        if (isMobile()) {
-            if (sectionTop <= window.pageYOffset + viewportThreshold &&
-                sectionBottom >= window.pageYOffset) {
-                fallbackSectionId = section.id;
-            }
-        } else {
-            if (scrollPosition >= sectionTop && scrollPosition <= sectionBottom) {
-                fallbackSectionId = section.id;
-            }
+        // Consistent detection for both mobile and desktop
+        const sectionCenter = sectionTop + (section.offsetHeight / 2);
+        const viewportCenter = window.pageYOffset + (window.innerHeight / 2);
+        const distanceFromCenter = Math.abs(sectionCenter - viewportCenter);
+        
+        if (distanceFromCenter < window.innerHeight * 0.4) {
+            fallbackSectionId = section.id;
         }
     });
 
@@ -218,7 +225,6 @@ let ticking = false;
 
 const updateParallax = () => {
     const scrolled = window.pageYOffset;
-    const scrollDirection = scrolled > lastScrollY ? 'down' : 'up';
 
     requestAnimationFrame(() => {
         const background = document.querySelector('.background');
@@ -242,7 +248,7 @@ const updateParallax = () => {
 
             const content = section.querySelector('.section-content');
             if (content && !section.classList.contains('hero')) {
-                const translateY = (scrollDirection === 'down' ? 30 : -30) * (1 - parallaxFactor);
+                const translateY = 30 * (1 - parallaxFactor);
                 const scale = 0.95 + (0.05 * parallaxFactor);
                 const opacity = 0.3 + (0.7 * parallaxFactor);
 
@@ -257,10 +263,8 @@ const updateParallax = () => {
 };
 
 let lastScrollY = window.pageYOffset;
-let scrollDirection = 'down';
 window.addEventListener('scroll', () => {
     const currentScrollY = window.pageYOffset;
-    scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
     
     // Set user scrolling flag
     isUserScrolling = true;
@@ -273,14 +277,14 @@ window.addEventListener('scroll', () => {
     // Set timeout to reset user scrolling flag
     scrollTimeout = setTimeout(() => {
         isUserScrolling = false;
-    }, 150);
+        // Force navigation update after scroll stops
+        updateActiveNav();
+    }, 100);
     
     if (!ticking) {
         requestAnimationFrame(() => {
-            // Only use manual navigation update as fallback on mobile
-            if (isMobile() && window.pageYOffset < 100) {
-                updateActiveNav();
-            }
+            // Always use manual navigation update for better responsiveness
+            updateActiveNav();
             updateParallax();
             ticking = false;
         });
@@ -428,11 +432,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let touchStartY = 0;
         let touchEndY = 0;
         let isScrolling = false;
+        let touchTimeout = null;
         
         document.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
             isScrolling = false;
             isUserScrolling = true;
+            isUserClicking = true;
+            
+            // Clear any existing touch timeout
+            if (touchTimeout) {
+                clearTimeout(touchTimeout);
+            }
         }, { passive: true });
         
         document.addEventListener('touchmove', (e) => {
@@ -446,24 +457,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 touchEndY = e.changedTouches[0].clientY;
                 const touchDiff = touchStartY - touchEndY;
                 
-                // If significant touch movement, update URL after scroll settles
-                if (Math.abs(touchDiff) > 50) {
-                    // Clear any existing timeout
-                    if (scrollTimeout) {
-                        clearTimeout(scrollTimeout);
-                    }
-                    
-                    // Set a longer timeout for touch events
-                    scrollTimeout = setTimeout(() => {
-                        isUserScrolling = false;
-                        updateActiveNav();
-                    }, 200);
-                } else {
-                    // Reset user scrolling flag for small movements
-                    setTimeout(() => {
-                        isUserScrolling = false;
-                    }, 100);
+                // Clear any existing timeout
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
                 }
+                if (touchTimeout) {
+                    clearTimeout(touchTimeout);
+                }
+                
+                // If significant touch movement, update navigation after scroll settles
+                if (Math.abs(touchDiff) > 30) {
+                    touchTimeout = setTimeout(() => {
+                        isUserScrolling = false;
+                        isUserClicking = false;
+                        updateActiveNav();
+                    }, 100);
+                } else {
+                    // Reset flags for small movements
+                    touchTimeout = setTimeout(() => {
+                        isUserScrolling = false;
+                        isUserClicking = false;
+                        updateActiveNav();
+                    }, 50);
+                }
+            } else {
+                // No scrolling, just a tap
+                setTimeout(() => {
+                    isUserScrolling = false;
+                    isUserClicking = false;
+                    updateActiveNav();
+                }, 50);
             }
         }, { passive: true });
     }
@@ -518,11 +541,7 @@ const cardObserver = new IntersectionObserver((entries) => {
             card.style.transition = `all 0.4s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`;
             card.style.opacity = '0';
             
-            if (scrollDirection === 'down') {
-                card.style.transform = 'translateY(-30px) scale(0.95)';
-            } else {
-                card.style.transform = 'translateY(30px) scale(0.95)';
-            }
+            card.style.transform = 'translateY(-30px) scale(0.95)';
         }
     });
 }, cardOptions);
