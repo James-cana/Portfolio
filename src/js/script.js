@@ -28,11 +28,31 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         if (href && href !== '#' && href.startsWith('#')) {
             const target = document.querySelector(href);
             if (target) {
+                // Update URL hash
+                window.location.hash = href;
+                // Update navigation state
                 updateNavigationState(target.id);
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+                // Mobile-optimized scrolling
+                if (isMobile()) {
+                    // Use instant scroll on mobile for better touch response
+                    target.scrollIntoView({
+                        behavior: 'auto',
+                        block: 'start'
+                    });
+                    // Add smooth scroll after instant positioning
+                    setTimeout(() => {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }, 50);
+                } else {
+                    // Desktop smooth scrolling
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             }
         }
     });
@@ -95,6 +115,9 @@ sections.forEach(section => {
 
 let activeSectionId = 'home';
 let navObserver = null;
+let isUserScrolling = false;
+let scrollTimeout = null;
+
 function isMobile() {
     return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
@@ -105,11 +128,14 @@ function createNavObserver() {
     }
     const navObserverOptions = {
         root: null,
-        rootMargin: isMobile() ? '-10% 0px -10% 0px' : '-25% 0px -25% 0px',
+        rootMargin: isMobile() ? '-15% 0px -15% 0px' : '-25% 0px -25% 0px',
         threshold: isMobile() ? [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] : [0, 0.25, 0.5, 0.75, 1.0]
     };
 
     navObserver = new IntersectionObserver((entries) => {
+        // Only update if user is not actively scrolling
+        if (isUserScrolling) return;
+        
         let mostVisibleSection = null;
         let maxVisibility = 0;
 
@@ -123,11 +149,15 @@ function createNavObserver() {
             }
         });
 
-        const minVisibility = isMobile() ? 0.15 : 0.25;
+        const minVisibility = isMobile() ? 0.2 : 0.25;
         if (mostVisibleSection && maxVisibility > minVisibility) {
             if (activeSectionId !== mostVisibleSection) {
                 activeSectionId = mostVisibleSection;
                 updateNavigationState(activeSectionId);
+                // Update URL hash when scrolling to a new section
+                if (window.location.hash !== `#${activeSectionId}`) {
+                    window.history.replaceState(null, null, `#${activeSectionId}`);
+                }
             }
         }
     }, navObserverOptions);
@@ -177,6 +207,10 @@ function updateActiveNav() {
     if (fallbackSectionId && fallbackSectionId !== activeSectionId) {
         activeSectionId = fallbackSectionId;
         updateNavigationState(activeSectionId);
+        // Update URL hash when fallback navigation is used
+        if (window.location.hash !== `#${activeSectionId}`) {
+            window.history.replaceState(null, null, `#${activeSectionId}`);
+        }
     }
 }
 
@@ -228,9 +262,23 @@ window.addEventListener('scroll', () => {
     const currentScrollY = window.pageYOffset;
     scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
     
+    // Set user scrolling flag
+    isUserScrolling = true;
+    
+    // Clear existing timeout
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+    }
+    
+    // Set timeout to reset user scrolling flag
+    scrollTimeout = setTimeout(() => {
+        isUserScrolling = false;
+    }, 150);
+    
     if (!ticking) {
         requestAnimationFrame(() => {
-            if (isMobile() || window.pageYOffset < 100) {
+            // Only use manual navigation update as fallback on mobile
+            if (isMobile() && window.pageYOffset < 100) {
                 updateActiveNav();
             }
             updateParallax();
@@ -247,18 +295,178 @@ window.addEventListener('scroll', () => {
     lastScrollY = currentScrollY;
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateActiveNav();
-    if (isMobile()) {
-        setTimeout(() => updateActiveNav(), 50);
-        setTimeout(() => updateActiveNav(), 200);
-        setTimeout(() => updateActiveNav(), 500);
-    }
-    setTimeout(() => {
-        if (window.pageYOffset < 50) {
-            updateNavigationState('home');
+// URL Routing functionality
+function handleHashChange() {
+    const hash = window.location.hash;
+    if (hash) {
+        const targetSection = hash.substring(1); // Remove the # symbol
+        const targetElement = document.getElementById(targetSection);
+        if (targetElement) {
+            // Update active section ID
+            activeSectionId = targetSection;
+            // Update navigation state
+            updateNavigationState(targetSection);
+            // Mobile-optimized scrolling
+            if (isMobile()) {
+                // Use instant scroll on mobile for better performance
+                targetElement.scrollIntoView({
+                    behavior: 'auto',
+                    block: 'start'
+                });
+                // Add smooth scroll after instant positioning
+                setTimeout(() => {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }, 50);
+            } else {
+                // Desktop smooth scrolling
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
         }
-    }, 100);
+    } else {
+        // Only go to home if no hash and we're not already on a specific section
+        if (!activeSectionId || activeSectionId === 'home') {
+            activeSectionId = 'home';
+            updateNavigationState('home');
+            if (isMobile()) {
+                document.getElementById('home').scrollIntoView({
+                    behavior: 'auto',
+                    block: 'start'
+                });
+            } else {
+                document.getElementById('home').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+    }
+}
+
+// Handle browser back/forward buttons
+window.addEventListener('hashchange', handleHashChange);
+
+// Handle page load with hash
+window.addEventListener('load', () => {
+    const hash = window.location.hash;
+    if (hash) {
+        const targetSection = hash.substring(1);
+        const targetElement = document.getElementById(targetSection);
+        if (targetElement) {
+            // Set active section ID to prevent override
+            activeSectionId = targetSection;
+            // Mobile-optimized loading
+            if (isMobile()) {
+                // Longer delay for mobile to ensure proper rendering
+                setTimeout(() => {
+                    targetElement.scrollIntoView({
+                        behavior: 'auto',
+                        block: 'start'
+                    });
+                    updateNavigationState(targetSection);
+                    // Add smooth scroll after positioning
+                    setTimeout(() => {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }, 100);
+                }, 200);
+            } else {
+                // Desktop loading
+                setTimeout(() => {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    updateNavigationState(targetSection);
+                }, 100);
+            }
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if there's a hash in the URL first
+    const hash = window.location.hash;
+    
+    if (hash) {
+        // If there's a hash, don't override it with home
+        const targetSection = hash.substring(1);
+        const targetElement = document.getElementById(targetSection);
+        if (targetElement) {
+            // Set the active section to the hash target
+            activeSectionId = targetSection;
+            updateNavigationState(targetSection);
+        }
+    } else {
+        // Only set to home if there's no hash
+        updateActiveNav();
+        if (isMobile()) {
+            setTimeout(() => updateActiveNav(), 50);
+            setTimeout(() => updateActiveNav(), 200);
+            setTimeout(() => updateActiveNav(), 500);
+        }
+        setTimeout(() => {
+            if (window.pageYOffset < 50) {
+                updateNavigationState('home');
+            }
+        }, 100);
+    }
+    
+    // Handle initial hash on page load
+    handleHashChange();
+    
+    // Mobile-specific touch handling for better URL routing
+    if (isMobile()) {
+        // Add touch event listeners for mobile navigation
+        let touchStartY = 0;
+        let touchEndY = 0;
+        let isScrolling = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            isScrolling = false;
+            isUserScrolling = true;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isScrolling) {
+                isScrolling = true;
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            if (isScrolling) {
+                touchEndY = e.changedTouches[0].clientY;
+                const touchDiff = touchStartY - touchEndY;
+                
+                // If significant touch movement, update URL after scroll settles
+                if (Math.abs(touchDiff) > 50) {
+                    // Clear any existing timeout
+                    if (scrollTimeout) {
+                        clearTimeout(scrollTimeout);
+                    }
+                    
+                    // Set a longer timeout for touch events
+                    scrollTimeout = setTimeout(() => {
+                        isUserScrolling = false;
+                        updateActiveNav();
+                    }, 200);
+                } else {
+                    // Reset user scrolling flag for small movements
+                    setTimeout(() => {
+                        isUserScrolling = false;
+                    }, 100);
+                }
+            }
+        }, { passive: true });
+    }
 });
 
 window.addEventListener('resize', () => {
@@ -266,9 +474,29 @@ window.addEventListener('resize', () => {
     if (navBrand && window.innerWidth <= 768) {
         navBrand.classList.remove('visible');
     }
+    
+    // Reset scrolling state on resize
+    isUserScrolling = false;
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+    }
+    
     createNavObserver();
     setTimeout(() => {
         updateActiveNav();
+        // Mobile-specific: Update URL hash after orientation change
+        if (isMobile()) {
+            setTimeout(() => {
+                const currentSection = document.querySelector('.section[style*="opacity: 1"], .section:not([style*="opacity: 0"])');
+                if (currentSection && currentSection.id !== activeSectionId) {
+                    activeSectionId = currentSection.id;
+                    updateNavigationState(activeSectionId);
+                    if (window.location.hash !== `#${activeSectionId}`) {
+                        window.history.replaceState(null, null, `#${activeSectionId}`);
+                    }
+                }
+            }, 200);
+        }
     }, 100);
 });
 
