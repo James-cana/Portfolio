@@ -6,7 +6,7 @@ Here, you can explore my work, skills, and projects — all crafted with passion
 ---
 
 ## Live Preview
-🔗**[Visit My Portfolio](https://portfolio-james-six-90.vercel.app)**
+🔗 **[Visit My Portfolio](https://portfolio-james-six-90.vercel.app)**
 
 ---
 
